@@ -1,6 +1,7 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
+const NGRAM_SIZE = 3;
 const MAX_ENTRIES = 10000;
 
 const loadHistory = async () => {
@@ -23,8 +24,14 @@ const tokenize = (text) => {
   const parts = raw.split(/[^a-z0-9]+/);
   const tokens = new Set();
   for (const part of parts) {
-    if (part.length >= 2) {
-      tokens.add(part);
+    if (part.length < 2) {
+      continue;
+    }
+    tokens.add(part);
+    if (part.length >= NGRAM_SIZE) {
+      for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
+        tokens.add(part.slice(i, i + NGRAM_SIZE));
+      }
     }
   }
   return Array.from(tokens);

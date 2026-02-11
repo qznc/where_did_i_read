@@ -1,6 +1,7 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
+const NGRAM_SIZE = 3;
 const api = typeof browser !== "undefined" ? browser : chrome;
 
 const state = {
@@ -32,13 +33,44 @@ const updateCounts = (filteredCount, totalCount) => {
 const tokenize = (text) => {
   const raw = String(text || "").toLowerCase();
   const parts = raw.split(/[^a-z0-9]+/);
-  const tokens = [];
+  const tokens = new Set();
   for (const part of parts) {
-    if (part.length >= 2) {
-      tokens.push(part);
+    if (part.length < 2) {
+      continue;
+    }
+    tokens.add(part);
+    if (part.length >= NGRAM_SIZE) {
+      for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
+        tokens.add(part.slice(i, i + NGRAM_SIZE));
+      }
     }
   }
-  return tokens;
+  return Array.from(tokens);
+};
+
+const tokenizeWords = (text) => {
+  const raw = String(text || "").toLowerCase();
+  const parts = raw.split(/[^a-z0-9]+/);
+  return parts.filter((part) => part.length >= 2);
+};
+
+const getEntryWordSet = (entry) => {
+  const text = `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`;
+  return new Set(tokenizeWords(text));
+};
+
+const countFullWordMatches = (entry, queryWords) => {
+  if (queryWords.length === 0) {
+    return 0;
+  }
+  const wordSet = getEntryWordSet(entry);
+  let count = 0;
+  for (const word of queryWords) {
+    if (wordSet.has(word)) {
+      count += 1;
+    }
+  }
+  return count;
 };
 
 const buildIndexFromEntries = (entries) => {
@@ -138,6 +170,7 @@ const render = () => {
     return;
   }
 
+  const queryWords = tokenizeWords(normalizedQuery);
   const tokens = tokenize(normalizedQuery);
   if (tokens.length === 0) {
     updateCounts(0, state.entries.length);
@@ -176,7 +209,14 @@ const render = () => {
   const matches = matchingIds
     .map((id) => entryMap.get(id))
     .filter(Boolean)
-    .sort((a, b) => (b.visitedAt || 0) - (a.visitedAt || 0))
+    .sort((a, b) => {
+      const scoreB = countFullWordMatches(b, queryWords);
+      const scoreA = countFullWordMatches(a, queryWords);
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      return (b.visitedAt || 0) - (a.visitedAt || 0);
+    })
     .slice(0, 20);
 
   if (matches.length === 0) {
