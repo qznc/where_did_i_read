@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+  "name": "Search My History",
+  "version": "1.0",
+
+  "description": "Indexes all pages you visit and provides a search index",
+
+  "icons": {
+    "48": "icons/border-48.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.mozilla.org/*"],
+      "js": ["borderify.js"]
+    }
+  ]
+}
