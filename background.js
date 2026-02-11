@@ -31,7 +31,9 @@ const tokenize = (text) => {
 };
 
 const indexEntry = (index, entry) => {
-  const tokens = tokenize(`${entry.title || ""} ${entry.url || ""}`);
+  const tokens = tokenize(
+    `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
+  );
   for (const token of tokens) {
     if (!index[token]) {
       index[token] = [];
@@ -43,7 +45,9 @@ const indexEntry = (index, entry) => {
 };
 
 const removeEntryFromIndex = (index, entry) => {
-  const tokens = tokenize(`${entry.title || ""} ${entry.url || ""}`);
+  const tokens = tokenize(
+    `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
+  );
   for (const token of tokens) {
     const ids = index[token];
     if (!ids) {
@@ -58,10 +62,11 @@ const removeEntryFromIndex = (index, entry) => {
   }
 };
 
-const normalizeEntry = ({ url, title, visitedAt }, id) => ({
+const normalizeEntry = ({ url, title, content, visitedAt }, id) => ({
   id,
   url,
   title: title || "",
+  content: typeof content === "string" ? content : "",
   visitedAt: typeof visitedAt === "number" ? visitedAt : Date.now(),
 });
 

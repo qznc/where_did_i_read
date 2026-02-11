@@ -17,11 +17,15 @@ const formatTime = (timestamp) => {
 const updateCounts = (filteredCount, totalCount) => {
   const meta = document.getElementById("meta");
   const count = document.getElementById("count");
+  const indexSize = document.getElementById("index-size");
   if (meta) {
     meta.textContent = `${filteredCount} matching`;
   }
   if (count) {
     count.textContent = String(totalCount);
+  }
+  if (indexSize) {
+    indexSize.textContent = String(Object.keys(state.index || {}).length);
   }
 };
 
@@ -54,7 +58,9 @@ const buildIndexFromEntries = (entries) => {
 
   const index = {};
   for (const entry of entries) {
-    const tokens = tokenize(`${entry.title || ""} ${entry.url || ""}`);
+    const tokens = tokenize(
+      `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
+    );
     for (const token of tokens) {
       if (!index[token]) {
         index[token] = [];
@@ -85,7 +91,9 @@ const indexIsStale = (entries, index) => {
     if (!Number.isInteger(entry.id)) {
       return true;
     }
-    const tokens = tokenize(`${entry.title || ""} ${entry.url || ""}`);
+    const tokens = tokenize(
+      `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
+    );
     for (const token of tokens) {
       const ids = index[token];
       if (!Array.isArray(ids) || !ids.includes(entry.id)) {

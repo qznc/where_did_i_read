@@ -1,9 +1,17 @@
+const MAX_CONTENT_LENGTH = 20000;
+
 const sendVisit = () => {
+  const content =
+    document.body && document.body.innerText
+      ? document.body.innerText.trim().slice(0, MAX_CONTENT_LENGTH)
+      : "";
+
   browser.runtime
     .sendMessage({
       type: "PAGE_VISITED",
       url: window.location.href,
       title: document.title,
+      content,
       visitedAt: Date.now(),
     })
     .catch((error) => {
