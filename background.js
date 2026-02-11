@@ -2,7 +2,7 @@ const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
 const NGRAM_SIZE = 3;
-const MAX_ENTRIES = 10000;
+const MAX_ENTRIES = 10000000;
 
 const loadHistory = async () => {
   const result = await browser.storage.local.get(HISTORY_KEY);
