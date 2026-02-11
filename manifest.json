@@ -9,10 +9,21 @@
     "48": "icons/border-48.png"
   },
 
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "permissions": ["storage"],
+
+  "browser_action": {
+    "default_title": "Search My History",
+    "default_popup": "history.html"
+  },
+
   "content_scripts": [
     {
-      "matches": ["*://*.mozilla.org/*"],
-      "js": ["borderify.js"]
+      "matches": ["<all_urls>"],
+      "js": ["page-visitor.js"]
     }
   ]
 }
