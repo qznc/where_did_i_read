@@ -13,12 +13,16 @@
     "scripts": ["background.js"]
   },
 
-  "permissions": ["storage"],
+  "permissions": ["storage", "tabs"],
 
   "browser_action": {
     "default_title": "Search My History",
-    "default_popup": "history.html",
     "default_icon": "icons/search.svg"
+  },
+
+  "options_ui": {
+    "page": "history.html",
+    "open_in_tab": true
   },
 
   "content_scripts": [
