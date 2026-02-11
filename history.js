@@ -3,7 +3,8 @@ const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
-const NGRAM_SIZE = 3;
+const { tokenizeWords, tokenizeQuery, buildIndexFromEntries } =
+  SearchMyHistoryIndexing;
 const api = typeof browser !== "undefined" ? browser : chrome;
 
 const state = {
@@ -32,49 +33,6 @@ const updateCounts = (filteredCount, totalCount) => {
   }
 };
 
-const tokenize = (text) => {
-  const raw = String(text || "").toLowerCase();
-  const parts = raw.split(/[^a-z0-9]+/);
-  const tokens = new Set();
-  for (const part of parts) {
-    if (part.length < 2) {
-      continue;
-    }
-    tokens.add(part);
-    if (part.length >= NGRAM_SIZE) {
-      for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
-        tokens.add(part.slice(i, i + NGRAM_SIZE));
-      }
-    }
-  }
-  return Array.from(tokens);
-};
-
-const tokenizeWords = (text) => {
-  const raw = String(text || "").toLowerCase();
-  const parts = raw.split(/[^a-z0-9]+/);
-  return parts.filter((part) => part.length >= 2);
-};
-
-const tokenizeQuery = (text) => {
-  const raw = String(text || "").toLowerCase();
-  const parts = raw.split(/[^a-z0-9]+/);
-  const tokens = new Set();
-  for (const part of parts) {
-    if (part.length < 2) {
-      continue;
-    }
-    if (part.length < NGRAM_SIZE) {
-      tokens.add(part);
-      continue;
-    }
-    for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
-      tokens.add(part.slice(i, i + NGRAM_SIZE));
-    }
-  }
-  return Array.from(tokens);
-};
-
 const getEntryWordSet = (entry) => {
   const text = `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`;
   return new Set(tokenizeWords(text));
@@ -92,70 +50,6 @@ const countFullWordMatches = (entry, queryWords) => {
     }
   }
   return count;
-};
-
-const buildIndexFromEntries = (entries) => {
-  let maxId = 0;
-  for (const entry of entries) {
-    if (Number.isInteger(entry.id) && entry.id > maxId) {
-      maxId = entry.id;
-    }
-  }
-
-  for (const entry of entries) {
-    if (!Number.isInteger(entry.id)) {
-      maxId += 1;
-      entry.id = maxId;
-    }
-  }
-
-  const index = {};
-  for (const entry of entries) {
-    const tokens = tokenize(
-      `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
-    );
-    for (const token of tokens) {
-      if (!index[token]) {
-        index[token] = [];
-      }
-      if (!index[token].includes(entry.id)) {
-        index[token].push(entry.id);
-      }
-    }
-  }
-
-  return index;
-};
-
-const indexIsStale = (entries, index) => {
-  if (!index || typeof index !== "object") {
-    return true;
-  }
-
-  if (entries.length === 0) {
-    return Object.keys(index).length > 0;
-  }
-
-  if (Object.keys(index).length === 0) {
-    return true;
-  }
-
-  for (const entry of entries) {
-    if (!Number.isInteger(entry.id)) {
-      return true;
-    }
-    const tokens = tokenize(
-      `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
-    );
-    for (const token of tokens) {
-      const ids = index[token];
-      if (!Array.isArray(ids) || !ids.includes(entry.id)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 };
 
 const intersectIds = (lists) => {

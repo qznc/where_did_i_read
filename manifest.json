@@ -10,7 +10,7 @@
   },
 
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["indexing.js", "background.js"]
   },
 
   "permissions": ["storage", "tabs"],

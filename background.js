@@ -1,7 +1,7 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
-const NGRAM_SIZE = 3;
+const { indexEntry, removeEntryFromIndex } = SearchMyHistoryIndexing;
 const MAX_ENTRIES = 10000000;
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
@@ -11,6 +11,16 @@ const DOMAIN_BLACKLIST = new Set([
   "www.bing.com",
   "www.ecosia.org",
 ]);
+
+const SCHEME_ALLOWLIST = new Set(["http:", "https:"]);
+
+const isSupportedUrl = (url) => {
+  try {
+    return SCHEME_ALLOWLIST.has(new URL(url).protocol);
+  } catch (error) {
+    return false;
+  }
+};
 
 const isBlacklistedUrl = (url) => {
   try {
@@ -48,56 +58,6 @@ const loadIndexState = async () => {
     indexVersion: Number.isInteger(indexVersion) ? indexVersion : null,
     historyVersion: Number.isInteger(historyVersion) ? historyVersion : null,
   };
-};
-
-const tokenize = (text) => {
-  const raw = String(text || "").toLowerCase();
-  const parts = raw.split(/[^a-z0-9]+/);
-  const tokens = new Set();
-  for (const part of parts) {
-    if (part.length < 2) {
-      continue;
-    }
-    tokens.add(part);
-    if (part.length >= NGRAM_SIZE) {
-      for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
-        tokens.add(part.slice(i, i + NGRAM_SIZE));
-      }
-    }
-  }
-  return Array.from(tokens);
-};
-
-const indexEntry = (index, entry) => {
-  const tokens = tokenize(
-    `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
-  );
-  for (const token of tokens) {
-    if (!index[token]) {
-      index[token] = [];
-    }
-    if (!index[token].includes(entry.id)) {
-      index[token].push(entry.id);
-    }
-  }
-};
-
-const removeEntryFromIndex = (index, entry) => {
-  const tokens = tokenize(
-    `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`,
-  );
-  for (const token of tokens) {
-    const ids = index[token];
-    if (!ids) {
-      continue;
-    }
-    const nextIds = ids.filter((id) => id !== entry.id);
-    if (nextIds.length === 0) {
-      delete index[token];
-    } else {
-      index[token] = nextIds;
-    }
-  }
 };
 
 const normalizeEntry = ({ url, title, content, visitedAt }, id) => ({
@@ -210,6 +170,10 @@ const trimToMaxEntries = (entries, index) => {
 
 const recordVisit = async (payload) => {
   if (!payload || typeof payload.url !== "string" || payload.url.length === 0) {
+    return;
+  }
+
+  if (!isSupportedUrl(payload.url)) {
     return;
   }
 
