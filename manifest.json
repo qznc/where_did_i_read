@@ -6,7 +6,7 @@
   "description": "Indexes all pages you visit and provides a search index",
 
   "icons": {
-    "48": "icons/border-48.png"
+    "48": "icons/search.svg"
   },
 
   "background": {
@@ -17,7 +17,8 @@
 
   "browser_action": {
     "default_title": "Search My History",
-    "default_popup": "history.html"
+    "default_popup": "history.html",
+    "default_icon": "icons/search.svg"
   },
 
   "content_scripts": [
