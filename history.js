@@ -1,6 +1,8 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
+const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
+const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
 const NGRAM_SIZE = 3;
 const api = typeof browser !== "undefined" ? browser : chrome;
 
@@ -275,15 +277,38 @@ const render = () => {
 };
 
 const loadState = async () => {
-  const result = await api.storage.local.get([HISTORY_KEY, INDEX_KEY]);
+  const result = await api.storage.local.get([
+    HISTORY_KEY,
+    INDEX_KEY,
+    INDEX_VERSION_KEY,
+    HISTORY_VERSION_KEY,
+  ]);
   state.entries = Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
   const storedIndex =
     result[INDEX_KEY] && typeof result[INDEX_KEY] === "object"
       ? result[INDEX_KEY]
       : {};
-  state.index = indexIsStale(state.entries, storedIndex)
-    ? buildIndexFromEntries(state.entries)
-    : storedIndex;
+  const historyVersion = Number.isInteger(result[HISTORY_VERSION_KEY])
+    ? result[HISTORY_VERSION_KEY]
+    : 0;
+  const indexVersion = Number.isInteger(result[INDEX_VERSION_KEY])
+    ? result[INDEX_VERSION_KEY]
+    : 0;
+  const versionsMatch = historyVersion === indexVersion;
+  const shouldUseStored =
+    versionsMatch &&
+    (Object.keys(storedIndex).length > 0 || state.entries.length === 0);
+
+  if (shouldUseStored) {
+    state.index = storedIndex;
+  } else {
+    state.index = buildIndexFromEntries(state.entries);
+    await api.storage.local.set({
+      [INDEX_KEY]: state.index,
+      [INDEX_VERSION_KEY]: historyVersion,
+    });
+  }
+
   render();
 };
 
@@ -292,6 +317,8 @@ const clearHistory = async () => {
     [HISTORY_KEY]: [],
     [INDEX_KEY]: {},
     [NEXT_ID_KEY]: 1,
+    [HISTORY_VERSION_KEY]: 0,
+    [INDEX_VERSION_KEY]: 0,
   });
   state.entries = [];
   state.index = {};

@@ -3,6 +3,8 @@ const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
 const NGRAM_SIZE = 3;
 const MAX_ENTRIES = 10000000;
+const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
+const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
 
 const DOMAIN_BLACKLIST = new Set([
   "www.google.com",
@@ -30,12 +32,21 @@ const loadHistory = async () => {
 };
 
 const loadIndexState = async () => {
-  const result = await browser.storage.local.get([INDEX_KEY, NEXT_ID_KEY]);
+  const result = await browser.storage.local.get([
+    INDEX_KEY,
+    NEXT_ID_KEY,
+    INDEX_VERSION_KEY,
+    HISTORY_VERSION_KEY,
+  ]);
   const index = result[INDEX_KEY];
   const nextId = result[NEXT_ID_KEY];
+  const indexVersion = result[INDEX_VERSION_KEY];
+  const historyVersion = result[HISTORY_VERSION_KEY];
   return {
     index: index && typeof index === "object" ? index : null,
     nextId: Number.isInteger(nextId) ? nextId : null,
+    indexVersion: Number.isInteger(indexVersion) ? indexVersion : null,
+    historyVersion: Number.isInteger(historyVersion) ? historyVersion : null,
   };
 };
 
@@ -119,7 +130,7 @@ const normalizeHistoryForUniqueUrls = (history) => {
   };
 };
 
-const rebuildIndex = (history) => {
+const rebuildIndex = (history, historyVersion = 0) => {
   let maxId = 0;
   const entries = history.map((entry) => {
     if (Number.isInteger(entry.id)) {
@@ -141,28 +152,48 @@ const rebuildIndex = (history) => {
     entries,
     index,
     nextId: maxId + 1,
+    historyVersion,
+    indexVersion: historyVersion,
   };
 };
 
 const ensureIndex = async (history) => {
   const state = await loadIndexState();
   const hasMissingIds = history.some((entry) => !Number.isInteger(entry.id));
-  if (!state.index || !state.nextId || hasMissingIds) {
-    return rebuildIndex(history);
+  const baseHistoryVersion = Number.isInteger(state.historyVersion)
+    ? state.historyVersion
+    : 0;
+  const baseIndexVersion = Number.isInteger(state.indexVersion)
+    ? state.indexVersion
+    : 0;
+  const versionsMatch = baseIndexVersion === baseHistoryVersion;
+
+  if (!state.index || !state.nextId || hasMissingIds || !versionsMatch) {
+    return rebuildIndex(history, baseHistoryVersion);
   }
 
   return {
     entries: history,
     index: state.index,
     nextId: state.nextId,
+    historyVersion: baseHistoryVersion,
+    indexVersion: baseIndexVersion,
   };
 };
 
-const saveState = async (entries, index, nextId) => {
+const saveState = async (
+  entries,
+  index,
+  nextId,
+  historyVersion,
+  indexVersion,
+) => {
   await browser.storage.local.set({
     [HISTORY_KEY]: entries,
     [INDEX_KEY]: index,
     [NEXT_ID_KEY]: nextId,
+    [HISTORY_VERSION_KEY]: historyVersion,
+    [INDEX_VERSION_KEY]: indexVersion,
   });
 };
 
@@ -212,7 +243,17 @@ const recordVisit = async (payload) => {
 
     trimToMaxEntries(state.entries, state.index);
 
-    await saveState(state.entries, state.index, state.nextId);
+    const nextHistoryVersion = (state.historyVersion || 0) + 1;
+    state.historyVersion = nextHistoryVersion;
+    state.indexVersion = nextHistoryVersion;
+
+    await saveState(
+      state.entries,
+      state.index,
+      state.nextId,
+      state.historyVersion,
+      state.indexVersion,
+    );
   } catch (error) {
     console.error("Search My History failed to persist history", error);
   }
