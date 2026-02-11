@@ -77,6 +77,28 @@ const normalizeEntry = ({ url, title, content, visitedAt }, id) => ({
   visitedAt: typeof visitedAt === "number" ? visitedAt : Date.now(),
 });
 
+const normalizeHistoryForUniqueUrls = (history) => {
+  const byUrl = new Map();
+  for (const entry of history) {
+    if (!entry || typeof entry.url !== "string" || entry.url.length === 0) {
+      continue;
+    }
+    const existing = byUrl.get(entry.url);
+    if (!existing || (entry.visitedAt || 0) >= (existing.visitedAt || 0)) {
+      byUrl.set(entry.url, entry);
+    }
+  }
+
+  const entries = Array.from(byUrl.values()).sort(
+    (a, b) => (a.visitedAt || 0) - (b.visitedAt || 0),
+  );
+
+  return {
+    entries,
+    changed: entries.length !== history.length,
+  };
+};
+
 const rebuildIndex = (history) => {
   let maxId = 0;
   const entries = history.map((entry) => {
@@ -124,6 +146,17 @@ const saveState = async (entries, index, nextId) => {
   });
 };
 
+const trimToMaxEntries = (entries, index) => {
+  if (entries.length <= MAX_ENTRIES) {
+    return;
+  }
+  const removeCount = entries.length - MAX_ENTRIES;
+  const removed = entries.splice(0, removeCount);
+  for (const removedEntry of removed) {
+    removeEntryFromIndex(index, removedEntry);
+  }
+};
+
 const recordVisit = async (payload) => {
   if (!payload || typeof payload.url !== "string" || payload.url.length === 0) {
     return;
@@ -131,23 +164,31 @@ const recordVisit = async (payload) => {
 
   try {
     const history = await loadHistory();
-    const state = await ensureIndex(history);
+    const normalized = normalizeHistoryForUniqueUrls(history);
+    const baseHistory = normalized.entries;
+    const state = await ensureIndex(baseHistory);
 
-    const entry = normalizeEntry(payload, state.nextId);
-    state.entries.push(entry);
-    indexEntry(state.index, entry);
+    const existingIndex = state.entries.findIndex(
+      (entry) => entry.url === payload.url,
+    );
 
-    if (state.entries.length > MAX_ENTRIES) {
-      const removed = state.entries.splice(
-        0,
-        state.entries.length - MAX_ENTRIES,
-      );
-      for (const removedEntry of removed) {
-        removeEntryFromIndex(state.index, removedEntry);
-      }
+    if (existingIndex >= 0) {
+      const existing = state.entries[existingIndex];
+      removeEntryFromIndex(state.index, existing);
+      const updated = normalizeEntry(payload, existing.id);
+      state.entries.splice(existingIndex, 1);
+      state.entries.push(updated);
+      indexEntry(state.index, updated);
+    } else {
+      const entry = normalizeEntry(payload, state.nextId);
+      state.entries.push(entry);
+      indexEntry(state.index, entry);
+      state.nextId = entry.id + 1;
     }
 
-    await saveState(state.entries, state.index, entry.id + 1);
+    trimToMaxEntries(state.entries, state.index);
+
+    await saveState(state.entries, state.index, state.nextId);
   } catch (error) {
     console.error("Search My History failed to persist history", error);
   }

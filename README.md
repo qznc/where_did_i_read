@@ -14,7 +14,7 @@ Indexes every page you visit and provides a search for you.
 1. Install/load the extension in Firefox.
 2. Browse as usual.
 3. Click the extension icon to open the popup.
-4. Type at least 2 characters to search. Results are limited to 20 entries.
+4. Type at least 2 characters to search.
 
 ## Notes
 
