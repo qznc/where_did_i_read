@@ -54,6 +54,25 @@ const tokenizeWords = (text) => {
   return parts.filter((part) => part.length >= 2);
 };
 
+const tokenizeQuery = (text) => {
+  const raw = String(text || "").toLowerCase();
+  const parts = raw.split(/[^a-z0-9]+/);
+  const tokens = new Set();
+  for (const part of parts) {
+    if (part.length < 2) {
+      continue;
+    }
+    if (part.length < NGRAM_SIZE) {
+      tokens.add(part);
+      continue;
+    }
+    for (let i = 0; i <= part.length - NGRAM_SIZE; i += 1) {
+      tokens.add(part.slice(i, i + NGRAM_SIZE));
+    }
+  }
+  return Array.from(tokens);
+};
+
 const getEntryWordSet = (entry) => {
   const text = `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`;
   return new Set(tokenizeWords(text));
@@ -171,7 +190,7 @@ const render = () => {
   }
 
   const queryWords = tokenizeWords(normalizedQuery);
-  const tokens = tokenize(normalizedQuery);
+  const tokens = tokenizeQuery(normalizedQuery);
   if (tokens.length === 0) {
     updateCounts(0, state.entries.length);
     const empty = document.createElement("div");
