@@ -5,6 +5,42 @@ const { indexEntry, removeEntryFromIndex } = SearchMyHistoryIndexing;
 const MAX_ENTRIES = 10000000;
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
+const SAVE_DEBOUNCE_MS = 10000;
+let pendingSaveTimeout = null;
+let pendingSaveState = null;
+let pendingSaveResolvers = [];
+
+const flushPendingSave = async () => {
+  if (!pendingSaveState) {
+    pendingSaveTimeout = null;
+    return;
+  }
+
+  const { entries, index, nextId, historyVersion, indexVersion } =
+    pendingSaveState;
+  pendingSaveState = null;
+  const resolvers = pendingSaveResolvers;
+  pendingSaveResolvers = [];
+  pendingSaveTimeout = null;
+
+  try {
+    await browser.storage.local.set({
+      [HISTORY_KEY]: entries,
+      [INDEX_KEY]: index,
+      [NEXT_ID_KEY]: nextId,
+      [HISTORY_VERSION_KEY]: historyVersion,
+      [INDEX_VERSION_KEY]: indexVersion,
+    });
+    for (const resolver of resolvers) {
+      resolver.resolve();
+    }
+  } catch (error) {
+    for (const resolver of resolvers) {
+      resolver.reject(error);
+    }
+    throw error;
+  }
+};
 
 const DOMAIN_BLACKLIST = new Set([
   "www.google.com",
@@ -141,19 +177,20 @@ const ensureIndex = async (history) => {
   };
 };
 
-const saveState = async (
-  entries,
-  index,
-  nextId,
-  historyVersion,
-  indexVersion,
-) => {
-  await browser.storage.local.set({
-    [HISTORY_KEY]: entries,
-    [INDEX_KEY]: index,
-    [NEXT_ID_KEY]: nextId,
-    [HISTORY_VERSION_KEY]: historyVersion,
-    [INDEX_VERSION_KEY]: indexVersion,
+const saveState = (entries, index, nextId, historyVersion, indexVersion) => {
+  pendingSaveState = { entries, index, nextId, historyVersion, indexVersion };
+  return new Promise((resolve, reject) => {
+    pendingSaveResolvers.push({ resolve, reject });
+
+    if (pendingSaveTimeout) {
+      return;
+    }
+
+    pendingSaveTimeout = setTimeout(() => {
+      flushPendingSave().catch((error) => {
+        console.error("Search My History failed to persist history", error);
+      });
+    }, SAVE_DEBOUNCE_MS);
   });
 };
 
