@@ -1,4 +1,4 @@
-const MAX_CONTENT_LENGTH = 20000;
+const MAX_CONTENT_LENGTH = 1000000;
 
 const sendVisit = () => {
   const content =

@@ -190,12 +190,18 @@ const render = () => {
   for (const entry of matches) {
     const item = document.createElement("li");
 
-    const title = document.createElement("div");
+    const title = document.createElement("a");
     title.className = "title";
-    title.textContent = entry.title || "(untitled)";
+    title.href = entry.url || "#";
+    title.target = "_blank";
+    title.rel = "noopener noreferrer";
+    title.textContent = entry.title || entry.url || "(untitled)";
 
-    const url = document.createElement("div");
+    const url = document.createElement("a");
     url.className = "url";
+    url.href = entry.url || "#";
+    url.target = "_blank";
+    url.rel = "noopener noreferrer";
     url.textContent = entry.url || "";
 
     const time = document.createElement("div");
