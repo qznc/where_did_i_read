@@ -58,6 +58,41 @@ const isSupportedUrl = (url) => {
   }
 };
 
+const TRACKING_PARAMS = new Set([
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "utm_id",
+  "utm_reader",
+  "utm_name",
+  "utm_cid",
+  "utm_source_platform",
+  "utm_creative_format",
+  "utm_marketing_tactic",
+  "gclid",
+  "fbclid",
+  "msclkid",
+  "igshid",
+  "mc_cid",
+  "mc_eid",
+  "ref",
+  "ref_src",
+]);
+
+const sanitizeUrl = (url) => {
+  try {
+    const parsed = new URL(url);
+    for (const param of TRACKING_PARAMS) {
+      parsed.searchParams.delete(param);
+    }
+    return parsed.toString();
+  } catch (error) {
+    return null;
+  }
+};
+
 const isBlacklistedUrl = (url) => {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
@@ -210,11 +245,16 @@ const recordVisit = async (payload) => {
     return;
   }
 
-  if (!isSupportedUrl(payload.url)) {
+  const sanitizedUrl = sanitizeUrl(payload.url);
+  if (!sanitizedUrl) {
     return;
   }
 
-  if (isBlacklistedUrl(payload.url)) {
+  if (!isSupportedUrl(sanitizedUrl)) {
+    return;
+  }
+
+  if (isBlacklistedUrl(sanitizedUrl)) {
     return;
   }
 
@@ -224,19 +264,21 @@ const recordVisit = async (payload) => {
     const baseHistory = normalized.entries;
     const state = await ensureIndex(baseHistory);
 
+    const sanitizedPayload = { ...payload, url: sanitizedUrl };
+
     const existingIndex = state.entries.findIndex(
-      (entry) => entry.url === payload.url,
+      (entry) => entry.url === sanitizedUrl,
     );
 
     if (existingIndex >= 0) {
       const existing = state.entries[existingIndex];
       removeEntryFromIndex(state.index, existing);
-      const updated = normalizeEntry(payload, existing.id);
+      const updated = normalizeEntry(sanitizedPayload, existing.id);
       state.entries.splice(existingIndex, 1);
       state.entries.push(updated);
       indexEntry(state.index, updated);
     } else {
-      const entry = normalizeEntry(payload, state.nextId);
+      const entry = normalizeEntry(sanitizedPayload, state.nextId);
       state.entries.push(entry);
       indexEntry(state.index, entry);
       state.nextId = entry.id + 1;
