@@ -4,6 +4,26 @@ const NEXT_ID_KEY = "searchMyHistoryNextId";
 const NGRAM_SIZE = 3;
 const MAX_ENTRIES = 10000000;
 
+const DOMAIN_BLACKLIST = new Set([
+  "www.google.com",
+  "www.bing.com",
+  "www.ecosia.org",
+]);
+
+const isBlacklistedUrl = (url) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    for (const domain of DOMAIN_BLACKLIST) {
+      if (hostname === domain || hostname.endsWith(`.${domain}`)) {
+        return true;
+      }
+    }
+  } catch (error) {
+    return false;
+  }
+  return false;
+};
+
 const loadHistory = async () => {
   const result = await browser.storage.local.get(HISTORY_KEY);
   return Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
@@ -159,6 +179,10 @@ const trimToMaxEntries = (entries, index) => {
 
 const recordVisit = async (payload) => {
   if (!payload || typeof payload.url !== "string" || payload.url.length === 0) {
+    return;
+  }
+
+  if (isBlacklistedUrl(payload.url)) {
     return;
   }
 
