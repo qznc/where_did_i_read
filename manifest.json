@@ -10,7 +10,7 @@
   },
 
   "background": {
-    "scripts": ["indexing.js", "background.js"]
+    "scripts": ["vendor/flexsearch.bundle.js", "indexing.js", "background.js"]
   },
 
   "permissions": ["storage", "tabs"],

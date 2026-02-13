@@ -1,11 +1,22 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
-const { indexEntry, removeEntryFromIndex } = SearchMyHistoryIndexing;
-const MAX_ENTRIES = 10000000;
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
+
+const {
+  createIndex,
+  addEntry,
+  updateEntry,
+  removeEntry,
+  buildIndexFromEntries,
+  exportIndex,
+  importIndex,
+} = SearchMyHistoryIndexing;
+
+const MAX_ENTRIES = 10000000;
 const SAVE_DEBOUNCE_MS = 10000;
+
 let pendingSaveTimeout = null;
 let pendingSaveState = null;
 let pendingSaveResolvers = [];
@@ -24,9 +35,11 @@ const flushPendingSave = async () => {
   pendingSaveTimeout = null;
 
   try {
+    const serializedIndex = await exportIndex(index);
+    const indexPayload = { __flexsearch: true, data: serializedIndex };
     await browser.storage.local.set({
       [HISTORY_KEY]: entries,
-      [INDEX_KEY]: index,
+      [INDEX_KEY]: indexPayload,
       [NEXT_ID_KEY]: nextId,
       [HISTORY_VERSION_KEY]: historyVersion,
       [INDEX_VERSION_KEY]: indexVersion,
@@ -42,10 +55,29 @@ const flushPendingSave = async () => {
   }
 };
 
+const saveState = (entries, index, nextId, historyVersion, indexVersion) => {
+  pendingSaveState = { entries, index, nextId, historyVersion, indexVersion };
+  return new Promise((resolve, reject) => {
+    pendingSaveResolvers.push({ resolve, reject });
+
+    if (pendingSaveTimeout) {
+      return;
+    }
+
+    pendingSaveTimeout = setTimeout(() => {
+      flushPendingSave().catch((error) => {
+        console.error("Search My History failed to persist history", error);
+      });
+    }, SAVE_DEBOUNCE_MS);
+  });
+};
+
 const DOMAIN_BLACKLIST = new Set([
-  "www.google.com",
+  "maps.google.com",
   "www.bing.com",
   "www.ecosia.org",
+  "www.google.com",
+  "www.owlbear.rodeo",
 ]);
 
 const SCHEME_ALLOWLIST = new Set(["http:", "https:"]);
@@ -119,7 +151,9 @@ const loadIndexState = async () => {
     INDEX_VERSION_KEY,
     HISTORY_VERSION_KEY,
   ]);
-  const index = result[INDEX_KEY];
+  const rawIndex = result[INDEX_KEY];
+  const index =
+    rawIndex && rawIndex.__flexsearch && rawIndex.data ? rawIndex.data : null;
   const nextId = result[NEXT_ID_KEY];
   const indexVersion = result[INDEX_VERSION_KEY];
   const historyVersion = result[HISTORY_VERSION_KEY];
@@ -174,10 +208,7 @@ const rebuildIndex = (history, historyVersion = 0) => {
     return { ...entry, id: maxId };
   });
 
-  const index = {};
-  for (const entry of entries) {
-    indexEntry(index, entry);
-  }
+  const index = buildIndexFromEntries(entries);
 
   return {
     entries,
@@ -203,30 +234,16 @@ const ensureIndex = async (history) => {
     return rebuildIndex(history, baseHistoryVersion);
   }
 
+  const index = createIndex();
+  importIndex(index, state.index);
+
   return {
     entries: history,
-    index: state.index,
+    index,
     nextId: state.nextId,
     historyVersion: baseHistoryVersion,
     indexVersion: baseIndexVersion,
   };
-};
-
-const saveState = (entries, index, nextId, historyVersion, indexVersion) => {
-  pendingSaveState = { entries, index, nextId, historyVersion, indexVersion };
-  return new Promise((resolve, reject) => {
-    pendingSaveResolvers.push({ resolve, reject });
-
-    if (pendingSaveTimeout) {
-      return;
-    }
-
-    pendingSaveTimeout = setTimeout(() => {
-      flushPendingSave().catch((error) => {
-        console.error("Search My History failed to persist history", error);
-      });
-    }, SAVE_DEBOUNCE_MS);
-  });
 };
 
 const trimToMaxEntries = (entries, index) => {
@@ -236,7 +253,7 @@ const trimToMaxEntries = (entries, index) => {
   const removeCount = entries.length - MAX_ENTRIES;
   const removed = entries.splice(0, removeCount);
   for (const removedEntry of removed) {
-    removeEntryFromIndex(index, removedEntry);
+    removeEntry(index, removedEntry);
   }
 };
 
@@ -272,15 +289,14 @@ const recordVisit = async (payload) => {
 
     if (existingIndex >= 0) {
       const existing = state.entries[existingIndex];
-      removeEntryFromIndex(state.index, existing);
       const updated = normalizeEntry(sanitizedPayload, existing.id);
       state.entries.splice(existingIndex, 1);
       state.entries.push(updated);
-      indexEntry(state.index, updated);
+      updateEntry(state.index, updated);
     } else {
       const entry = normalizeEntry(sanitizedPayload, state.nextId);
       state.entries.push(entry);
-      indexEntry(state.index, entry);
+      addEntry(state.index, entry);
       state.nextId = entry.id + 1;
     }
 

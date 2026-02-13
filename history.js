@@ -1,15 +1,21 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
-const NEXT_ID_KEY = "searchMyHistoryNextId";
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
-const { tokenizeWords, tokenizeQuery, buildIndexFromEntries } =
-  SearchMyHistoryIndexing;
+
+const {
+  createIndex,
+  importIndex,
+  searchIndex,
+  buildIndexFromEntries,
+  exportIndex,
+} = SearchMyHistoryIndexing;
 const api = typeof browser !== "undefined" ? browser : chrome;
 
 const state = {
   entries: [],
-  index: {},
+  index: null,
+  indexSize: 0,
   query: "",
 };
 
@@ -29,43 +35,32 @@ const updateCounts = (filteredCount, totalCount) => {
     count.textContent = String(totalCount);
   }
   if (indexSize) {
-    indexSize.textContent = String(Object.keys(state.index || {}).length);
+    indexSize.textContent = String(state.indexSize || 0);
   }
 };
 
-const getEntryWordSet = (entry) => {
-  const text = `${entry.title || ""} ${entry.url || ""} ${entry.content || ""}`;
-  return new Set(tokenizeWords(text));
-};
-
-const countFullWordMatches = (entry, queryWords) => {
-  if (queryWords.length === 0) {
-    return 0;
-  }
-  const wordSet = getEntryWordSet(entry);
-  let count = 0;
-  for (const word of queryWords) {
-    if (wordSet.has(word)) {
-      count += 1;
-    }
-  }
-  return count;
-};
-
-const intersectIds = (lists) => {
-  if (lists.length === 0) {
+const normalizeSearchResults = (result) => {
+  if (!result) {
     return [];
   }
-  const sorted = lists.slice().sort((a, b) => a.length - b.length);
-  let result = new Set(sorted[0]);
-  for (let i = 1; i < sorted.length; i += 1) {
-    const next = new Set(sorted[i]);
-    result = new Set([...result].filter((id) => next.has(id)));
-    if (result.size === 0) {
-      return [];
+  if (Array.isArray(result)) {
+    if (result.length > 0 && Array.isArray(result[0])) {
+      return result.flat();
     }
+    return result;
   }
-  return Array.from(result);
+  if (typeof result === "object" && Array.isArray(result.result)) {
+    return result.result;
+  }
+  return [];
+};
+
+const renderEmpty = (list, message) => {
+  updateCounts(0, state.entries.length);
+  const empty = document.createElement("div");
+  empty.className = "empty";
+  empty.textContent = message;
+  list.appendChild(empty);
 };
 
 const render = () => {
@@ -77,46 +72,22 @@ const render = () => {
 
   const normalizedQuery = state.query.trim().toLowerCase();
   if (normalizedQuery.length < 2) {
-    updateCounts(0, state.entries.length);
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "Type at least 2 characters to search.";
-    list.appendChild(empty);
+    renderEmpty(list, "Type at least 2 characters to search.");
     return;
   }
 
-  const queryWords = tokenizeWords(normalizedQuery);
-  const tokens = tokenizeQuery(normalizedQuery);
-  if (tokens.length === 0) {
-    updateCounts(0, state.entries.length);
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No searchable tokens found.";
-    list.appendChild(empty);
+  if (!state.index) {
+    renderEmpty(list, "Search index is not available.");
     return;
   }
 
-  const idLists = tokens
-    .map((token) => state.index[token] || [])
-    .filter((ids) => ids.length > 0);
+  const rawMatches = searchIndex(state.index, normalizedQuery, 50);
+  const matchingIds = normalizeSearchResults(rawMatches);
 
-  if (idLists.length !== tokens.length) {
-    updateCounts(0, state.entries.length);
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No matching history entries.";
-    list.appendChild(empty);
-    return;
-  }
-
-  const matchingIds = intersectIds(idLists);
   updateCounts(matchingIds.length, state.entries.length);
 
   if (matchingIds.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No matching history entries.";
-    list.appendChild(empty);
+    renderEmpty(list, "No matching history entries.");
     return;
   }
 
@@ -124,21 +95,10 @@ const render = () => {
   const matches = matchingIds
     .map((id) => entryMap.get(id))
     .filter(Boolean)
-    .sort((a, b) => {
-      const scoreB = countFullWordMatches(b, queryWords);
-      const scoreA = countFullWordMatches(a, queryWords);
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA;
-      }
-      return (b.visitedAt || 0) - (a.visitedAt || 0);
-    })
     .slice(0, 20);
 
   if (matches.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "No matching history entries.";
-    list.appendChild(empty);
+    renderEmpty(list, "No matching history entries.");
     return;
   }
 
@@ -170,6 +130,19 @@ const render = () => {
   }
 };
 
+const deserializeIndex = (payload) => {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  if (!payload.__flexsearch) {
+    return null;
+  }
+  if (payload.data && typeof payload.data === "object") {
+    return payload.data;
+  }
+  return {};
+};
+
 const loadState = async () => {
   const result = await api.storage.local.get([
     HISTORY_KEY,
@@ -177,11 +150,10 @@ const loadState = async () => {
     INDEX_VERSION_KEY,
     HISTORY_VERSION_KEY,
   ]);
+
   state.entries = Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
-  const storedIndex =
-    result[INDEX_KEY] && typeof result[INDEX_KEY] === "object"
-      ? result[INDEX_KEY]
-      : {};
+
+  const rawIndex = deserializeIndex(result[INDEX_KEY]);
   const historyVersion = Number.isInteger(result[HISTORY_VERSION_KEY])
     ? result[HISTORY_VERSION_KEY]
     : 0;
@@ -189,18 +161,47 @@ const loadState = async () => {
     ? result[INDEX_VERSION_KEY]
     : 0;
   const versionsMatch = historyVersion === indexVersion;
+  const hasMissingIds = state.entries.some(
+    (entry) => !Number.isInteger(entry.id),
+  );
   const shouldUseStored =
     versionsMatch &&
-    (Object.keys(storedIndex).length > 0 || state.entries.length === 0);
+    !hasMissingIds &&
+    rawIndex &&
+    Object.keys(rawIndex).length > 0;
 
   if (shouldUseStored) {
-    state.index = storedIndex;
+    const index = createIndex();
+    importIndex(index, rawIndex);
+    state.index = index;
+    state.indexSize = Object.keys(rawIndex).length;
+  } else if (state.entries.length > 0) {
+    const index = buildIndexFromEntries(state.entries);
+    state.index = index;
+    state.indexSize = 0;
+
+    exportIndex(index)
+      .then((serializedIndex) => {
+        state.indexSize = Object.keys(serializedIndex).length;
+
+        if (!hasMissingIds) {
+          const indexPayload = { __flexsearch: true, data: serializedIndex };
+          return api.storage.local.set({
+            [INDEX_KEY]: indexPayload,
+            [INDEX_VERSION_KEY]: historyVersion,
+          });
+        }
+        return undefined;
+      })
+      .then(() => {
+        render();
+      })
+      .catch((error) => {
+        console.error("Search My History failed to export index", error);
+      });
   } else {
-    state.index = buildIndexFromEntries(state.entries);
-    await api.storage.local.set({
-      [INDEX_KEY]: state.index,
-      [INDEX_VERSION_KEY]: historyVersion,
-    });
+    state.index = null;
+    state.indexSize = 0;
   }
 
   render();
@@ -209,13 +210,13 @@ const loadState = async () => {
 const clearHistory = async () => {
   await api.storage.local.set({
     [HISTORY_KEY]: [],
-    [INDEX_KEY]: {},
-    [NEXT_ID_KEY]: 1,
-    [HISTORY_VERSION_KEY]: 0,
+    [INDEX_KEY]: { __flexsearch: true, data: {} },
     [INDEX_VERSION_KEY]: 0,
+    [HISTORY_VERSION_KEY]: 0,
   });
   state.entries = [];
-  state.index = {};
+  state.index = null;
+  state.indexSize = 0;
   render();
 };
 

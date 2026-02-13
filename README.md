@@ -20,3 +20,10 @@ Indexes every page you visit and provides a search for you.
 
 - The content index is built from title, URL, and page text.
 - Page text is truncated to avoid excessive storage growth.
+
+## ToDO
+
+- [ ] use IndexedDB instead of localStorage
+- [ ] auto-completion for search
+- [x] use flexsearch  https://github.com/nextapps-de/flexsearch
+- [x] update flexsearch to 0.8.2  https://github.com/nextapps-de/flexsearch/archive/refs/tags/0.8.2.tar.gz
