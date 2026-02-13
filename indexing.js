@@ -157,13 +157,44 @@
         return;
       }
       const data = {};
-      index.export((key, value) => {
-        if (key == null) {
-          resolve(data);
+      let callbackCount = 0;
+      let finished = false;
+      const idleTimeoutMs = 200;
+      let idleTimer = null;
+
+      const finalize = (reason) => {
+        if (finished) {
           return;
         }
+        finished = true;
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+        }
+
+        resolve(data);
+      };
+
+      const scheduleIdleFinalize = () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+        }
+        idleTimer = setTimeout(() => {
+          finalize("idle-timeout");
+        }, idleTimeoutMs);
+      };
+
+      index.export((key, value) => {
+        callbackCount += 1;
+        if (key == null || key === "") {
+          finalize("explicit-completion");
+          return;
+        }
+
         data[key] = value;
+        scheduleIdleFinalize();
       });
+
+      scheduleIdleFinalize();
     });
 
   const importIndex = (index, data) => {

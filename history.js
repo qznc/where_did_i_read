@@ -250,33 +250,12 @@ const loadState = async () => {
   render();
 };
 
-const clearHistory = async () => {
-  await storage.set({
-    [HISTORY_KEY]: [],
-    [INDEX_KEY]: { __flexsearch: true, data: {} },
-    [INDEX_VERSION_KEY]: 0,
-    [INDEX_FORMAT_VERSION_KEY]: INDEX_FORMAT_VERSION,
-    [HISTORY_VERSION_KEY]: 0,
-  });
-  state.entries = [];
-  state.index = null;
-  state.indexSize = 0;
-  render();
-};
-
 const bindEvents = () => {
   const queryInput = document.getElementById("query");
   if (queryInput) {
     queryInput.addEventListener("input", (event) => {
       state.query = event.target.value.trim().toLowerCase();
       render();
-    });
-  }
-
-  const clearButton = document.getElementById("clear");
-  if (clearButton) {
-    clearButton.addEventListener("click", () => {
-      clearHistory();
     });
   }
 };
