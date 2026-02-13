@@ -24,6 +24,31 @@ const formatTime = (timestamp) => {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
 };
 
+const getIndexSizeBytes = (indexData) => {
+  try {
+    const json = JSON.stringify(indexData ?? {});
+    let bytes = 0;
+    if (typeof TextEncoder !== "undefined") {
+      bytes = new TextEncoder().encode(json).length;
+    } else if (typeof Blob !== "undefined") {
+      bytes = new Blob([json]).size;
+    } else {
+      bytes = unescape(encodeURIComponent(json)).length;
+    }
+    return bytes;
+  } catch (error) {
+    console.log("Search My History index size calculation failed", error);
+    return 0;
+  }
+};
+
+const formatIndexSizeMiB = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 MiB";
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+};
+
 const updateCounts = (filteredCount, totalCount) => {
   const meta = document.getElementById("meta");
   const count = document.getElementById("count");
@@ -35,7 +60,7 @@ const updateCounts = (filteredCount, totalCount) => {
     count.textContent = String(totalCount);
   }
   if (indexSize) {
-    indexSize.textContent = String(state.indexSize || 0);
+    indexSize.textContent = formatIndexSizeMiB(state.indexSize);
   }
 };
 
@@ -153,7 +178,8 @@ const loadState = async () => {
 
   state.entries = Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
 
-  const rawIndex = deserializeIndex(result[INDEX_KEY]);
+  const storedIndexPayload = result[INDEX_KEY];
+  const rawIndex = deserializeIndex(storedIndexPayload);
   const historyVersion = Number.isInteger(result[HISTORY_VERSION_KEY])
     ? result[HISTORY_VERSION_KEY]
     : 0;
@@ -174,7 +200,7 @@ const loadState = async () => {
     const index = createIndex();
     importIndex(index, rawIndex);
     state.index = index;
-    state.indexSize = Object.keys(rawIndex).length;
+    state.indexSize = getIndexSizeBytes(storedIndexPayload);
   } else if (state.entries.length > 0) {
     const index = buildIndexFromEntries(state.entries);
     state.index = index;
@@ -182,10 +208,10 @@ const loadState = async () => {
 
     exportIndex(index)
       .then((serializedIndex) => {
-        state.indexSize = Object.keys(serializedIndex).length;
+        const indexPayload = { __flexsearch: true, data: serializedIndex };
+        state.indexSize = getIndexSizeBytes(indexPayload);
 
         if (!hasMissingIds) {
-          const indexPayload = { __flexsearch: true, data: serializedIndex };
           return storage.set({
             [INDEX_KEY]: indexPayload,
             [INDEX_VERSION_KEY]: historyVersion,

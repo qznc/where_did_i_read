@@ -100,12 +100,16 @@
         return;
       }
       const data = {};
+      const pendingKeys = new Set(["reg", "cfg", "map", "ctx"]);
       index.export((key, value) => {
-        if (key === null) {
-          resolve(data);
+        if (!key) {
           return;
         }
         data[key] = value;
+        pendingKeys.delete(key);
+        if (pendingKeys.size === 0) {
+          resolve(data);
+        }
       });
     });
 
