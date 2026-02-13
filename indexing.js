@@ -1,5 +1,13 @@
 (() => {
   const DEFAULT_INDEX_OPTIONS = {
+    document: {
+      id: "id",
+      index: [
+        { field: "title", weight: 4 },
+        { field: "url", weight: 2 },
+        { field: "content", weight: 1 },
+      ],
+    },
     tokenize: "forward",
     cache: 100,
     resolution: 9,
@@ -38,21 +46,21 @@
 
   const createIndex = (options = {}) => {
     const FlexSearch = assertFlexSearch();
-    return new FlexSearch.Index({ ...DEFAULT_INDEX_OPTIONS, ...options });
+    return new FlexSearch.Document({ ...DEFAULT_INDEX_OPTIONS, ...options });
   };
 
   const addEntry = (index, entry) => {
     if (!index || !entry || !Number.isInteger(entry.id)) {
       return;
     }
-    index.add(entry.id, entryToText(entry));
+    index.add(entry);
   };
 
   const updateEntry = (index, entry) => {
     if (!index || !entry || !Number.isInteger(entry.id)) {
       return;
     }
-    index.update(entry.id, entryToText(entry));
+    index.update(entry);
   };
 
   const removeEntry = (index, entryOrId) => {
@@ -90,7 +98,56 @@
     if (!index || !query || String(query).trim().length < 2) {
       return [];
     }
-    return index.search(String(query), limit);
+    const result = index.search(String(query), { limit, suggest: true });
+    let ids = [];
+    if (Array.isArray(result)) {
+      if (
+        result.length > 0 &&
+        result[0] &&
+        typeof result[0] === "object" &&
+        Array.isArray(result[0].result)
+      ) {
+        ids = result.flatMap((entry) => entry.result);
+      } else if (result.length > 0 && Array.isArray(result[0])) {
+        ids = result.flat();
+      } else {
+        ids = result;
+      }
+    } else if (
+      result &&
+      typeof result === "object" &&
+      Array.isArray(result.result)
+    ) {
+      ids = result.result;
+    }
+    if (Array.isArray(ids)) {
+      ids = ids.flatMap((entry) => {
+        if (entry && typeof entry === "object") {
+          if (Array.isArray(entry.result)) {
+            return entry.result;
+          }
+          if ("id" in entry) {
+            return [entry.id];
+          }
+          return [];
+        }
+        return entry;
+      });
+    }
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return [];
+    }
+    const seen = new Set();
+    const normalized = [];
+    for (const id of ids) {
+      const numericId = Number(id);
+      if (!Number.isInteger(numericId) || seen.has(numericId)) {
+        continue;
+      }
+      seen.add(numericId);
+      normalized.push(numericId);
+    }
+    return normalized;
   };
 
   const exportIndex = (index) =>
@@ -100,16 +157,12 @@
         return;
       }
       const data = {};
-      const pendingKeys = new Set(["reg", "cfg", "map", "ctx"]);
       index.export((key, value) => {
-        if (!key) {
+        if (key == null) {
+          resolve(data);
           return;
         }
         data[key] = value;
-        pendingKeys.delete(key);
-        if (pendingKeys.size === 0) {
-          resolve(data);
-        }
       });
     });
 

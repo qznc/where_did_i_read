@@ -1,6 +1,8 @@
 const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
+const INDEX_FORMAT_VERSION_KEY = "searchMyHistoryIndexFormatVersion";
+const INDEX_FORMAT_VERSION = 2;
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
 
 const {
@@ -69,6 +71,14 @@ const normalizeSearchResults = (result) => {
     return [];
   }
   if (Array.isArray(result)) {
+    if (
+      result.length > 0 &&
+      result[0] &&
+      typeof result[0] === "object" &&
+      Array.isArray(result[0].result)
+    ) {
+      return result.flatMap((entry) => entry.result);
+    }
     if (result.length > 0 && Array.isArray(result[0])) {
       return result.flat();
     }
@@ -174,6 +184,7 @@ const loadState = async () => {
     INDEX_KEY,
     INDEX_VERSION_KEY,
     HISTORY_VERSION_KEY,
+    INDEX_FORMAT_VERSION_KEY,
   ]);
 
   state.entries = Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
@@ -186,12 +197,17 @@ const loadState = async () => {
   const indexVersion = Number.isInteger(result[INDEX_VERSION_KEY])
     ? result[INDEX_VERSION_KEY]
     : 0;
+  const formatVersion = Number.isInteger(result[INDEX_FORMAT_VERSION_KEY])
+    ? result[INDEX_FORMAT_VERSION_KEY]
+    : 0;
   const versionsMatch = historyVersion === indexVersion;
+  const formatMatches = formatVersion === INDEX_FORMAT_VERSION;
   const hasMissingIds = state.entries.some(
     (entry) => !Number.isInteger(entry.id),
   );
   const shouldUseStored =
     versionsMatch &&
+    formatMatches &&
     !hasMissingIds &&
     rawIndex &&
     Object.keys(rawIndex).length > 0;
@@ -215,6 +231,7 @@ const loadState = async () => {
           return storage.set({
             [INDEX_KEY]: indexPayload,
             [INDEX_VERSION_KEY]: historyVersion,
+            [INDEX_FORMAT_VERSION_KEY]: INDEX_FORMAT_VERSION,
           });
         }
         return undefined;
@@ -238,6 +255,7 @@ const clearHistory = async () => {
     [HISTORY_KEY]: [],
     [INDEX_KEY]: { __flexsearch: true, data: {} },
     [INDEX_VERSION_KEY]: 0,
+    [INDEX_FORMAT_VERSION_KEY]: INDEX_FORMAT_VERSION,
     [HISTORY_VERSION_KEY]: 0,
   });
   state.entries = [];

@@ -2,7 +2,9 @@ const HISTORY_KEY = "searchMyHistoryEntries";
 const INDEX_KEY = "searchMyHistoryIndex";
 const NEXT_ID_KEY = "searchMyHistoryNextId";
 const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
+const INDEX_FORMAT_VERSION_KEY = "searchMyHistoryIndexFormatVersion";
 const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
+const INDEX_FORMAT_VERSION = 2;
 
 const {
   createIndex,
@@ -44,6 +46,7 @@ const flushPendingSave = async () => {
       [NEXT_ID_KEY]: nextId,
       [HISTORY_VERSION_KEY]: historyVersion,
       [INDEX_VERSION_KEY]: indexVersion,
+      [INDEX_FORMAT_VERSION_KEY]: INDEX_FORMAT_VERSION,
     });
     for (const resolver of resolvers) {
       resolver.resolve();
@@ -152,6 +155,7 @@ const loadIndexState = async () => {
     NEXT_ID_KEY,
     INDEX_VERSION_KEY,
     HISTORY_VERSION_KEY,
+    INDEX_FORMAT_VERSION_KEY,
   ]);
   const rawIndex = result[INDEX_KEY];
   const index =
@@ -159,11 +163,13 @@ const loadIndexState = async () => {
   const nextId = result[NEXT_ID_KEY];
   const indexVersion = result[INDEX_VERSION_KEY];
   const historyVersion = result[HISTORY_VERSION_KEY];
+  const formatVersion = result[INDEX_FORMAT_VERSION_KEY];
   return {
     index: index && typeof index === "object" ? index : null,
     nextId: Number.isInteger(nextId) ? nextId : null,
     indexVersion: Number.isInteger(indexVersion) ? indexVersion : null,
     historyVersion: Number.isInteger(historyVersion) ? historyVersion : null,
+    formatVersion: Number.isInteger(formatVersion) ? formatVersion : null,
   };
 };
 
@@ -230,9 +236,19 @@ const ensureIndex = async (history) => {
   const baseIndexVersion = Number.isInteger(state.indexVersion)
     ? state.indexVersion
     : 0;
+  const baseFormatVersion = Number.isInteger(state.formatVersion)
+    ? state.formatVersion
+    : 0;
   const versionsMatch = baseIndexVersion === baseHistoryVersion;
+  const formatMatches = baseFormatVersion === INDEX_FORMAT_VERSION;
 
-  if (!state.index || !state.nextId || hasMissingIds || !versionsMatch) {
+  if (
+    !state.index ||
+    !state.nextId ||
+    hasMissingIds ||
+    !versionsMatch ||
+    !formatMatches
+  ) {
     return rebuildIndex(history, baseHistoryVersion);
   }
 
