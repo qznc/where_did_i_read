@@ -117,6 +117,7 @@ const TRACKING_PARAMS = new Set([
 const sanitizeUrl = (url) => {
   try {
     const parsed = new URL(url);
+    parsed.hash = "";
     for (const param of TRACKING_PARAMS) {
       parsed.searchParams.delete(param);
     }
