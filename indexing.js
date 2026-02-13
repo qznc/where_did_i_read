@@ -52,12 +52,7 @@
     if (!index || !entry || !Number.isInteger(entry.id)) {
       return;
     }
-    try {
-      index.update(entry.id, entryToText(entry));
-    } catch (error) {
-      index.remove(entry.id);
-      index.add(entry.id, entryToText(entry));
-    }
+    index.update(entry.id, entryToText(entry));
   };
 
   const removeEntry = (index, entryOrId) => {

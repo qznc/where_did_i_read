@@ -10,7 +10,7 @@ const {
   buildIndexFromEntries,
   exportIndex,
 } = SearchMyHistoryIndexing;
-const api = typeof browser !== "undefined" ? browser : chrome;
+const storage = SearchMyHistoryStorage;
 
 const state = {
   entries: [],
@@ -144,7 +144,7 @@ const deserializeIndex = (payload) => {
 };
 
 const loadState = async () => {
-  const result = await api.storage.local.get([
+  const result = await storage.getMany([
     HISTORY_KEY,
     INDEX_KEY,
     INDEX_VERSION_KEY,
@@ -186,7 +186,7 @@ const loadState = async () => {
 
         if (!hasMissingIds) {
           const indexPayload = { __flexsearch: true, data: serializedIndex };
-          return api.storage.local.set({
+          return storage.set({
             [INDEX_KEY]: indexPayload,
             [INDEX_VERSION_KEY]: historyVersion,
           });
@@ -208,7 +208,7 @@ const loadState = async () => {
 };
 
 const clearHistory = async () => {
-  await api.storage.local.set({
+  await storage.set({
     [HISTORY_KEY]: [],
     [INDEX_KEY]: { __flexsearch: true, data: {} },
     [INDEX_VERSION_KEY]: 0,

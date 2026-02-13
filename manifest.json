@@ -10,10 +10,15 @@
   },
 
   "background": {
-    "scripts": ["vendor/flexsearch.bundle.js", "indexing.js", "background.js"]
+    "scripts": [
+      "vendor/flexsearch.bundle.js",
+      "indexing.js",
+      "storage.js",
+      "background.js"
+    ]
   },
 
-  "permissions": ["storage", "tabs"],
+  "permissions": ["tabs"],
 
   "browser_action": {
     "default_title": "Search My History",

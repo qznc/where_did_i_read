@@ -13,6 +13,7 @@ const {
   exportIndex,
   importIndex,
 } = SearchMyHistoryIndexing;
+const storage = SearchMyHistoryStorage;
 
 const MAX_ENTRIES = 10000000;
 const SAVE_DEBOUNCE_MS = 10000;
@@ -37,7 +38,7 @@ const flushPendingSave = async () => {
   try {
     const serializedIndex = await exportIndex(index);
     const indexPayload = { __flexsearch: true, data: serializedIndex };
-    await browser.storage.local.set({
+    await storage.set({
       [HISTORY_KEY]: entries,
       [INDEX_KEY]: indexPayload,
       [NEXT_ID_KEY]: nextId,
@@ -140,12 +141,12 @@ const isBlacklistedUrl = (url) => {
 };
 
 const loadHistory = async () => {
-  const result = await browser.storage.local.get(HISTORY_KEY);
-  return Array.isArray(result[HISTORY_KEY]) ? result[HISTORY_KEY] : [];
+  const result = await storage.get(HISTORY_KEY);
+  return Array.isArray(result) ? result : [];
 };
 
 const loadIndexState = async () => {
-  const result = await browser.storage.local.get([
+  const result = await storage.getMany([
     INDEX_KEY,
     NEXT_ID_KEY,
     INDEX_VERSION_KEY,
