@@ -28,7 +28,7 @@ const sendVisit = () => {
       visitedAt: Date.now(),
     })
     .catch((error) => {
-      console.error("Search My History failed to record visit", error);
+      console.error("Where Did I Read failed to record visit", error);
     });
 };
 

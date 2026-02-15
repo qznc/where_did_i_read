@@ -1,5 +1,5 @@
 (() => {
-  const DB_NAME = "searchMyHistoryDb";
+  const DB_NAME = "WDIR_Db";
   const DB_VERSION = 1;
   const STORE_NAME = "kv";
 
@@ -131,6 +131,6 @@
           : typeof self !== "undefined"
             ? self
             : {};
-    globalRef.SearchMyHistoryStorage = api;
+    globalRef.WDIR_Storage = api;
   }
 })();

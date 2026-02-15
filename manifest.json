@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "Search My History",
-  "version": "1.0",
+  "name": "Where Did I Read",
+  "version": "0.1",
 
   "description": "Indexes all pages you visit and provides a search index",
 
@@ -21,7 +21,7 @@
   "permissions": ["tabs"],
 
   "browser_action": {
-    "default_title": "Search My History",
+    "default_title": "Where Did I Read",
     "default_icon": "icons/search.svg"
   },
 

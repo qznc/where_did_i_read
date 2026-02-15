@@ -1,9 +1,9 @@
-const HISTORY_KEY = "searchMyHistoryEntries";
-const INDEX_KEY = "searchMyHistoryIndex";
-const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
-const INDEX_FORMAT_VERSION_KEY = "searchMyHistoryIndexFormatVersion";
+const HISTORY_KEY = "WDIR_Entries";
+const INDEX_KEY = "WDIR_Index";
+const INDEX_VERSION_KEY = "WDIR_IndexVersion";
+const INDEX_FORMAT_VERSION_KEY = "WDIR_IndexFormatVersion";
 const INDEX_FORMAT_VERSION = 2;
-const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
+const HISTORY_VERSION_KEY = "WDIR_EntriesVersion";
 
 const {
   createIndex,
@@ -11,8 +11,8 @@ const {
   searchIndex,
   buildIndexFromEntries,
   exportIndex,
-} = SearchMyHistoryIndexing;
-const storage = SearchMyHistoryStorage;
+} = WDIR_Indexing;
+const storage = WDIR_Storage;
 
 const state = {
   entries: [],
@@ -39,7 +39,7 @@ const getIndexSizeBytes = (indexData) => {
     }
     return bytes;
   } catch (error) {
-    console.log("Search My History index size calculation failed", error);
+    console.log("Where Did I Read index size calculation failed", error);
     return 0;
   }
 };
@@ -240,7 +240,7 @@ const loadState = async () => {
         render();
       })
       .catch((error) => {
-        console.error("Search My History failed to export index", error);
+        console.error("Where Did I Read failed to export index", error);
       });
   } else {
     state.index = null;
@@ -268,7 +268,7 @@ const init = () => {
       meta.textContent = "Failed to load history.";
     }
     updateCounts(0, 0);
-    console.error("Search My History failed to load popup data", error);
+    console.error("Where Did I Read failed to load popup data", error);
   });
 };
 

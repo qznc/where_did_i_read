@@ -1,9 +1,9 @@
-const HISTORY_KEY = "searchMyHistoryEntries";
-const INDEX_KEY = "searchMyHistoryIndex";
-const NEXT_ID_KEY = "searchMyHistoryNextId";
-const INDEX_VERSION_KEY = "searchMyHistoryIndexVersion";
-const INDEX_FORMAT_VERSION_KEY = "searchMyHistoryIndexFormatVersion";
-const HISTORY_VERSION_KEY = "searchMyHistoryEntriesVersion";
+const HISTORY_KEY = "WDIR_Entries";
+const INDEX_KEY = "WDIR_Index";
+const NEXT_ID_KEY = "WDIR_NextId";
+const INDEX_VERSION_KEY = "WDIR_IndexVersion";
+const INDEX_FORMAT_VERSION_KEY = "WDIR_IndexFormatVersion";
+const HISTORY_VERSION_KEY = "WDIR_EntriesVersion";
 const INDEX_FORMAT_VERSION = 2;
 
 const {
@@ -14,8 +14,8 @@ const {
   buildIndexFromEntries,
   exportIndex,
   importIndex,
-} = SearchMyHistoryIndexing;
-const storage = SearchMyHistoryStorage;
+} = WDIR_Indexing;
+const storage = WDIR_Storage;
 
 const MAX_ENTRIES = 10000000;
 const SAVE_DEBOUNCE_MS = 10000;
@@ -70,7 +70,7 @@ const saveState = (entries, index, nextId, historyVersion, indexVersion) => {
 
     pendingSaveTimeout = setTimeout(() => {
       flushPendingSave().catch((error) => {
-        console.error("Search My History failed to persist history", error);
+        console.error("Where Did I Read failed to persist history", error);
       });
     }, SAVE_DEBOUNCE_MS);
   });
@@ -332,7 +332,7 @@ const recordVisit = async (payload) => {
       state.indexVersion,
     );
   } catch (error) {
-    console.error("Search My History failed to persist history", error);
+    console.error("Where Did I Read failed to persist history", error);
   }
 };
 

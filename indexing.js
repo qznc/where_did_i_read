@@ -230,6 +230,6 @@
           : typeof self !== "undefined"
             ? self
             : {};
-    globalRef.SearchMyHistoryIndexing = api;
+    globalRef.WDIR_Indexing = api;
   }
 })();

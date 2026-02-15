@@ -1,4 +1,4 @@
-# Search My History - a Firefox extension
+# Where Did I Read - a Firefox extension
 
 Indexes every page you visit and provides a search for you.
 
@@ -20,8 +20,3 @@ Indexes every page you visit and provides a search for you.
 
 - The content index is built from title, URL, and page text.
 - Page text is truncated to avoid excessive storage growth.
-
-## ToDO
-
-- [x] use IndexedDB instead of localStorage
-- [ ] auto-completion for search
