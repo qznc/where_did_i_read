@@ -1,0 +1,11 @@
+{
+  "summary": {
+    "en-US": "A Firefox extension that indexes every page you visit and lets you search them."
+  },
+  "categories": { "firefox": ["search-tools"] },
+  "version": { "license": "GPL-3.0-only" },
+  "requires_payment": false,
+  "homepage": {
+    "en-US": "https://github.com/qznc/where_did_i_read"
+  }
+}

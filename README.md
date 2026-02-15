@@ -2,6 +2,8 @@
 
 Indexes every page you visit and provides a search for you.
 
+[Install it from addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/where-did-i-read/).
+
 ## What it does
 
 - Records page visits (URL, title, timestamp).
