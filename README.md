@@ -20,3 +20,7 @@ Indexes every page you visit and provides a search for you.
 
 - The content index is built from title, URL, and page text.
 - Page text is truncated to avoid excessive storage growth.
+
+## License
+
+This project is licensed under GPL v3. See `LICENSE`.
