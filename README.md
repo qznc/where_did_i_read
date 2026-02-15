@@ -22,6 +22,7 @@ Indexes every page you visit and provides a search for you.
 
 - The content index is built from title, URL, and page text.
 - Page text is truncated to avoid excessive storage growth.
+- This is directly inspired from [Hister](https://hister.org/) but completely lives inside your browser.
 
 ## License
 
