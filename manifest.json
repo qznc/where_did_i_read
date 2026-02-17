@@ -20,14 +20,10 @@
   },
 
   "background": {
-    "scripts": [
-      "vendor/flexsearch.bundle.js",
-      "indexing.js",
-      "storage.js",
-      "background.js"
-    ]
+    "page": "background.html"
   },
 
+  "content_security_policy": "script-src 'self' https://cdnjs.cloudflare.com; object-src 'self'",
   "permissions": ["tabs"],
 
   "browser_action": {

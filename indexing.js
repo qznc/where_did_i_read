@@ -31,7 +31,7 @@
     const FlexSearch = getFlexSearch();
     if (!FlexSearch) {
       throw new Error(
-        "FlexSearch is not available. Make sure flexsearch.bundle.js is loaded first.",
+        "FlexSearch is not available. Make sure the FlexSearch CDN script is loaded first.",
       );
     }
     return FlexSearch;
