@@ -1,16 +1,7 @@
 const MAX_CONTENT_LENGTH = 1000000;
-const SCHEME_ALLOWLIST = new Set(["http:", "https:"]);
-
-const isSupportedUrl = (url) => {
-  try {
-    return SCHEME_ALLOWLIST.has(new URL(url).protocol);
-  } catch (error) {
-    return false;
-  }
-};
 
 const sendVisit = () => {
-  if (!isSupportedUrl(window.location.href)) {
+  if (!WDIR_Constants.isSupportedUrl(window.location.href)) {
     return;
   }
 

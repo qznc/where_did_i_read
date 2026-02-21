@@ -1,9 +1,11 @@
-const HISTORY_KEY = "WDIR_Entries";
-const INDEX_KEY = "WDIR_Index";
-const INDEX_VERSION_KEY = "WDIR_IndexVersion";
-const INDEX_FORMAT_VERSION_KEY = "WDIR_IndexFormatVersion";
-const INDEX_FORMAT_VERSION = 2;
-const HISTORY_VERSION_KEY = "WDIR_EntriesVersion";
+const {
+  HISTORY_KEY,
+  INDEX_KEY,
+  INDEX_VERSION_KEY,
+  INDEX_FORMAT_VERSION_KEY,
+  INDEX_FORMAT_VERSION,
+  HISTORY_VERSION_KEY,
+} = WDIR_Constants;
 
 const {
   createIndex,
@@ -81,30 +83,6 @@ const updateCounts = (filteredCount, totalCount) => {
   }
 };
 
-const normalizeSearchResults = (result) => {
-  if (!result) {
-    return [];
-  }
-  if (Array.isArray(result)) {
-    if (
-      result.length > 0 &&
-      result[0] &&
-      typeof result[0] === "object" &&
-      Array.isArray(result[0].result)
-    ) {
-      return result.flatMap((entry) => entry.result);
-    }
-    if (result.length > 0 && Array.isArray(result[0])) {
-      return result.flat();
-    }
-    return result;
-  }
-  if (typeof result === "object" && Array.isArray(result.result)) {
-    return result.result;
-  }
-  return [];
-};
-
 const renderEmpty = (list, message) => {
   updateCounts(0, state.entries.length);
   const empty = document.createElement("div");
@@ -132,8 +110,7 @@ const render = () => {
     return;
   }
 
-  const rawMatches = searchIndex(state.index, normalizedQuery, 50);
-  const matchingIds = normalizeSearchResults(rawMatches);
+  const matchingIds = searchIndex(state.index, normalizedQuery, 50);
 
   updateCounts(matchingIds.length, state.entries.length);
 

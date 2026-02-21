@@ -1,10 +1,13 @@
-const HISTORY_KEY = "WDIR_Entries";
-const INDEX_KEY = "WDIR_Index";
-const NEXT_ID_KEY = "WDIR_NextId";
-const INDEX_VERSION_KEY = "WDIR_IndexVersion";
-const INDEX_FORMAT_VERSION_KEY = "WDIR_IndexFormatVersion";
-const HISTORY_VERSION_KEY = "WDIR_EntriesVersion";
-const INDEX_FORMAT_VERSION = 2;
+const {
+  HISTORY_KEY,
+  INDEX_KEY,
+  NEXT_ID_KEY,
+  INDEX_VERSION_KEY,
+  INDEX_FORMAT_VERSION_KEY,
+  HISTORY_VERSION_KEY,
+  INDEX_FORMAT_VERSION,
+  isSupportedUrl,
+} = WDIR_Constants;
 
 const {
   createIndex,
@@ -83,16 +86,6 @@ const DOMAIN_BLACKLIST = new Set([
   "www.google.com",
   "www.owlbear.rodeo",
 ]);
-
-const SCHEME_ALLOWLIST = new Set(["http:", "https:"]);
-
-const isSupportedUrl = (url) => {
-  try {
-    return SCHEME_ALLOWLIST.has(new URL(url).protocol);
-  } catch (error) {
-    return false;
-  }
-};
 
 const TRACKING_PARAMS = new Set([
   "utm_source",
