@@ -8,7 +8,7 @@
         { field: "content", weight: 1 },
       ],
     },
-    tokenize: "forward",
+    tokenize: "full",
     cache: 100,
     resolution: 9,
     depth: 3,
