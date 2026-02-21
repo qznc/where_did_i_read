@@ -98,6 +98,19 @@
                 color: #616e7c;
                 padding: 10px 0;
             }
+            .ecosia-link {
+                margin-left: 8px;
+                font-size: 11px;
+                color: #fff;
+                background: #36a849;
+                border-radius: 4px;
+                padding: 2px 7px;
+                text-decoration: none;
+                white-space: nowrap;
+            }
+            .ecosia-link:hover {
+                background: #2d8e3e;
+            }
         </style>
     </head>
     <body>
@@ -110,6 +123,9 @@
         </div>
         <div class="meta">
             <span id="meta">Loading…</span> · Total: <span id="count">0</span> · Index: <span id="index-size">0</span>
+            <a id="ecosia-link" class="ecosia-link" href="#" target="_blank" rel="noopener noreferrer" hidden
+                >Search with Ecosia instead</a
+            >
         </div>
         <ul id="results"></ul>
 

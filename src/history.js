@@ -51,6 +51,20 @@ const formatIndexSizeMiB = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 };
 
+const updateEcosiaLink = (query) => {
+  const link = document.getElementById("ecosia-link");
+  if (!link) {
+    return;
+  }
+  const trimmed = (query || "").trim();
+  if (trimmed.length < 2) {
+    link.hidden = true;
+    return;
+  }
+  link.href = `https://www.ecosia.org/search?q=${encodeURIComponent(trimmed)}`;
+  link.hidden = false;
+};
+
 const updateCounts = (filteredCount, totalCount) => {
   const meta = document.getElementById("meta");
   const count = document.getElementById("count");
@@ -106,6 +120,7 @@ const render = () => {
   list.innerHTML = "";
 
   const normalizedQuery = state.query.trim().toLowerCase();
+  updateEcosiaLink(state.query);
   if (normalizedQuery.length < 2) {
     renderEmpty(list, "Type at least 2 characters to search.");
     return;
