@@ -11,6 +11,7 @@ const {
   searchIndex,
   buildIndexFromEntries,
   exportIndex,
+  removeEntry,
 } = WDIR_Indexing;
 const storage = WDIR_Storage;
 
@@ -155,12 +156,24 @@ const render = () => {
   for (const entry of matches) {
     const item = document.createElement("li");
 
+    const titleRow = document.createElement("div");
+    titleRow.className = "title-row";
+
     const title = document.createElement("a");
     title.className = "title";
     title.href = entry.url || "#";
     title.target = "_blank";
     title.rel = "noopener noreferrer";
     title.textContent = entry.title || entry.url || "(untitled)";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "✕";
+    deleteBtn.title = "Remove from history";
+    deleteBtn.addEventListener("click", () => deleteEntry(entry.id));
+
+    titleRow.appendChild(title);
+    titleRow.appendChild(deleteBtn);
 
     const url = document.createElement("a");
     url.className = "url";
@@ -173,11 +186,41 @@ const render = () => {
     time.className = "time";
     time.textContent = formatTime(entry.visitedAt);
 
-    item.appendChild(title);
+    item.appendChild(titleRow);
     item.appendChild(url);
     item.appendChild(time);
     list.appendChild(item);
   }
+};
+
+const deleteEntry = async (id) => {
+  const idx = state.entries.findIndex((e) => e.id === id);
+  if (idx === -1) {
+    return;
+  }
+
+  state.entries.splice(idx, 1);
+  removeEntry(state.index, id);
+
+  try {
+    const serializedIndex = await exportIndex(state.index);
+    const indexPayload = { __flexsearch: true, data: serializedIndex };
+    state.indexSize = getIndexSizeBytes(indexPayload);
+
+    const historyVersion = ((await storage.get(HISTORY_VERSION_KEY)) || 0) + 1;
+
+    await storage.set({
+      [HISTORY_KEY]: state.entries,
+      [INDEX_KEY]: indexPayload,
+      [HISTORY_VERSION_KEY]: historyVersion,
+      [INDEX_VERSION_KEY]: historyVersion,
+      [INDEX_FORMAT_VERSION_KEY]: INDEX_FORMAT_VERSION,
+    });
+  } catch (error) {
+    console.error("Where Did I Read failed to delete entry", error);
+  }
+
+  render();
 };
 
 const deserializeIndex = (payload) => {
