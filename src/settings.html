@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Where Did I Read — Settings</title>
+        <style>
+            :root {
+                color-scheme: light dark;
+            }
+
+            body {
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    Roboto,
+                    sans-serif;
+                margin: 0;
+                padding: 24px;
+                width: 100%;
+                min-height: 100vh;
+                box-sizing: border-box;
+                color: #1f2933;
+                background: #f7f9fb;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin: 0 0 8px;
+            }
+
+            p {
+                margin: 0;
+                color: #52606d;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+
+            .card {
+                margin-top: 20px;
+                background: #fff;
+                border: 1px solid #e4e7eb;
+                border-radius: 10px;
+                padding: 16px;
+                max-width: 720px;
+            }
+
+            .danger-title {
+                margin: 0 0 8px;
+                font-size: 16px;
+                color: #b42318;
+            }
+
+            .danger-text {
+                margin-bottom: 14px;
+                color: #7a271a;
+            }
+
+            #wipe-db {
+                appearance: none;
+                border: 1px solid #b42318;
+                background: #d92d20;
+                color: #fff;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 10px 14px;
+                cursor: pointer;
+            }
+
+            #wipe-db:hover {
+                background: #b42318;
+            }
+
+            #wipe-db:active {
+                background: #912018;
+            }
+
+            #wipe-db:focus-visible {
+                outline: 3px solid rgba(217, 45, 32, 0.35);
+                outline-offset: 2px;
+            }
+
+            #status {
+                margin-top: 12px;
+                font-size: 13px;
+                color: #616e7c;
+                min-height: 1.2em;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Settings</h1>
+        <p>Manage Where Did I Read storage and behavior.</p>
+
+        <section class="card" aria-labelledby="danger-zone-heading">
+            <h2 id="danger-zone-heading" class="danger-title">Danger Zone</h2>
+            <p class="danger-text">
+                This permanently deletes all saved history and the search index. This action cannot be undone.
+            </p>
+            <button id="wipe-db" type="button">Wipe database</button>
+            <div id="status" role="status" aria-live="polite"></div>
+        </section>
+
+        <script src="storage.js"></script>
+        <script src="settings.js"></script>
+    </body>
+</html>

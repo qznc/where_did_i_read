@@ -23,6 +23,17 @@
                 font-size: 16px;
                 margin: 0 0 8px;
             }
+            .settings-link {
+                float: right;
+                font-size: 13px;
+                font-weight: normal;
+                color: #52606d;
+                text-decoration: none;
+            }
+            .settings-link:hover {
+                color: #1f2933;
+                text-decoration: underline;
+            }
             .row {
                 display: flex;
                 gap: 8px;
@@ -90,7 +101,10 @@
         </style>
     </head>
     <body>
-        <h1>Where Did I Read</h1>
+        <h1>
+            Where Did I Read
+            <a class="settings-link" href="settings.html">⚙ Settings</a>
+        </h1>
         <div class="row">
             <input id="query" type="search" placeholder="Search keywords..." />
         </div>
